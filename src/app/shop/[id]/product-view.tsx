@@ -54,6 +54,14 @@ export default function ProductView({ product }: { product: Product }) {
   const { gallery } = useGallery(product);
 
   if (!product || !product.variants || product.variants.length === 0) {
+
+    //   This line checks for three possible missing states:
+    //   !product → The product object itself doesn’t exist yet (not fetched or undefined).
+    //   !product.variants → The product object exists, but the variants field is missing.
+    //   product.variants.length === 0 → The variants array exists but is empty (no variant data yet).
+    //   If any of these are true, the app assumes the product data hasn’t fully loaded yet.
+    // 
+
     return (
       <div className="p-10 text-center text-gray-500">
         <p>⏳ Product is syncing from Printful. Please refresh in a moment.</p>
@@ -143,20 +151,22 @@ export default function ProductView({ product }: { product: Product }) {
             <label className="block font-medium mb-1 text-gray-800">
               Color:
             </label>
-            <div className="flex gap-2 flex-wrap">
-              {colors.map((c) => (
-                <button
-                  key={c || "none"}
-                  onClick={() => setSelectedColor(c)}
-                  aria-pressed={selectedColor === c}
-                  className={`px-3 py-2 border rounded transition-all duration-150 ${
-                    selectedColor === c
-                      ? "border-blue-500 bg-blue-100 text-blue-700"
-                      : "border-gray-300 bg-white hover:bg-gray-100"
+             <div className="image-gallery flex gap-1 flex-wrap">
+              {gallery.map((item, i) => (
+                <img
+                  key={item.key}
+                  className={`relative w-20 h-20 border-2 rounded overflow-hidden transition-all duration-200 cursor-pointer ${
+                    i === highlightedIdx
+                      ? "border-blue-500 ring-2 ring-blue-400 scale-105"
+                      : "border-transparent hover:border-gray-300"
                   }`}
-                >
-                  {c}
-                </button>
+                  src={item.url}
+                  alt={product.name}
+                  width={40}
+                  height={40}
+                  onClick={() => setHighlightedIdx(i)}
+                  aria-label={`Highlight image ${i + 1}`}
+                />
               ))}
             </div>
           </div>
@@ -174,7 +184,9 @@ export default function ProductView({ product }: { product: Product }) {
                   key={s || "none"}
                   onClick={() => setSelectedSize(s)}
                   aria-pressed={selectedSize === s}
-                  className={`px-3 py-2 border rounded transition-all duration-150 ${
+                  className={`px-3 py-2 rounded  duration-150 px-4 py-2 bg-white/10 
+                              text-white backdrop-blur-md border border-white/20 rounded-xl 
+                              hover:bg-white/20 transition-all ${
                     selectedSize === s
                       ? "border-blue-500 bg-blue-100 text-blue-700"
                       : "border-gray-300 bg-white hover:bg-gray-100"
