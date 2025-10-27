@@ -383,12 +383,12 @@ export default function ProductView({ product }: { product: Product }) {
             </div>
           </div>
         )}
-        
-       
+
+       {/* Size with custom sorting */}
         {sizes.length > 0 && (
           <div className="product-option mb-4 ">
             <label className="block font-medium mb-1 text-gray-800">Size:</label>
-            <div className="flex gap-3 flex-nowrap overflow-x-auto">
+            <div className="!flex !flex-row !flex-nowrap !items-center !gap-3 !w-fit overflow-x-auto whitespace-nowrap">               
               {sizes
                 .sort((a, b) => {
                   // Define size mapping for standard and extended sizes
@@ -438,7 +438,8 @@ export default function ProductView({ product }: { product: Product }) {
                     key={s || "none"}
                     onClick={() => setSelectedSize(s)}
                     aria-selected={selectedSize === s}
-                    className={`px-3 py-1 rounded-xl text-gray-800 cursor-pointer transition-all whitespace-nowrap ${
+                    // inline-flex prevents block-level stretching; flex-shrink-0 keeps items from collapsing
+                    className={`inline-flex items-center justify-center flex-shrink-0 px-3 py-1 rounded-xl text-gray-800 cursor-pointer transition-all whitespace-nowrap ${
                       selectedSize === s
                         ? "bg-blue-100 text-blue-700 border border-blue-500"
                         : "bg-white/10 border border-gray-300 hover:bg-white/20"
@@ -449,7 +450,7 @@ export default function ProductView({ product }: { product: Product }) {
                 ))}
             </div>
           </div>
-        )}
+         )}
 
         <div className="product-option mb-4">
           <label htmlFor="qty" className="block font-medium mb-1 text-gray-800">
@@ -523,7 +524,7 @@ export default function ProductView({ product }: { product: Product }) {
         {/* Share Product */}
         <div className="ins-tile__row ins-tile__row--social ">
           <p>Share this product with your friends:</p>
-          <div className="flex flex-row flex-nowrap gap-6 mt-6">
+          <div className="!flex !flex-row !flex-nowrap !items-center !gap-6 !w-fit mt-6">
             {/* Facebook */}
             <a
               href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
