@@ -30,10 +30,8 @@ export function useGallery(product: Product) {
       }
     };
 
-    // 1. main product image
     addImage(product?.image_url);
 
-    // 2. product-level mockups
     for (const m of product.mockups ?? []) {
       addImage(m?.url);
     }
@@ -54,14 +52,6 @@ export default function ProductView({ product }: { product: Product }) {
   const { gallery } = useGallery(product);
 
   if (!product || !product.variants || product.variants.length === 0) {
-
-    //   This line checks for three possible missing states:
-    //   !product → The product object itself doesn’t exist yet (not fetched or undefined).
-    //   !product.variants → The product object exists, but the variants field is missing.
-    //   product.variants.length === 0 → The variants array exists but is empty (no variant data yet).
-    //   If any of these are true, the app assumes the product data hasn’t fully loaded yet.
-    // 
-
     return (
       <div className="p-10 text-center text-gray-500">
         <p>⏳ Product is syncing from Printful. Please refresh in a moment.</p>
@@ -74,8 +64,6 @@ export default function ProductView({ product }: { product: Product }) {
   const [selectedColor, setSelectedColor] = useState(colors[0] ?? "");
   const [selectedSize, setSelectedSize] = useState(sizes[0] ?? "");
   const [qty, setQty] = useState(1);
-
-  // 🔹 Highlighted image index (auto-highlight first image)
   const [highlightedIdx, setHighlightedIdx] = useState(0);
 
   const variantsByKey = useMemo(() => {
@@ -94,6 +82,39 @@ export default function ProductView({ product }: { product: Product }) {
     : "";
 
   const inStock = selectedVariant ? selectedVariant.is_available : true;
+
+  // --- Diagnostics ---
+  useEffect(() => {
+    console.log("🖥️ Displayed in UI");
+    console.log("Selected Color:", selectedColor);
+    console.log("Selected Size:", selectedSize);
+    console.log("Quantity:", qty);
+    console.log("Price Label:", priceLabel);
+    console.log("In Stock:", inStock);
+    console.log("Highlighted Index:", highlightedIdx);
+    console.log("Main Image URL:", gallery[highlightedIdx]?.url ?? "none");
+    console.log("Gallery URLs:", gallery.map((g) => g.url));
+    console.log("Product Name:", product.name);
+    console.log("Product Description:", product.description ?? "none");
+    console.log("Product Base Image:", product.image_url ?? "none");
+    console.log("Product Colors:", colors);
+    console.log("Product Sizes:", sizes);
+    console.log("Product Variants:", product.variants.length);
+    product.variants.forEach((v) =>
+      console.log(`• Variant: ${v.color} / ${v.size}`, v)
+    );
+  }, [
+    selectedColor,
+    selectedSize,
+    qty,
+    priceLabel,
+    inStock,
+    highlightedIdx,
+    gallery,
+    product,
+    colors,
+    sizes,
+  ]);
 
   return (
     <section className="product-detail-container flex flex-col md:flex-row gap-8">
@@ -116,7 +137,6 @@ export default function ProductView({ product }: { product: Product }) {
           )}
         </div>
 
-        {/* ✅ Thumbnail gallery with highlight */}
         <div className="image-gallery flex gap-2 flex-wrap">
           {gallery.map((item, i) => (
             <img
@@ -133,6 +153,7 @@ export default function ProductView({ product }: { product: Product }) {
               onClick={() => setHighlightedIdx(i)}
               aria-label={`Highlight image ${i + 1}`}
             />
+            
           ))}
         </div>
       </div>
@@ -148,10 +169,8 @@ export default function ProductView({ product }: { product: Product }) {
         {/* ✅ Color Options with highlight */}
         {colors.length > 0 && (
           <div className="product-option mb-4">
-            <label className="block font-medium mb-1 text-gray-800">
-              Color:
-            </label>
-             <div className="image-gallery flex gap-1 flex-wrap">
+            <label className="block font-medium mb-1 text-gray-800">Color:</label>
+            <div className="image-gallery flex gap-1 flex-wrap">
               {gallery.map((item, i) => (
                 <img
                   key={item.key}
@@ -171,13 +190,11 @@ export default function ProductView({ product }: { product: Product }) {
             </div>
           </div>
         )}
-
-        {/* ✅ Size Options with highlight */}
+        
+        {/* ✅ Size Options with highlight
         {sizes.length > 0 && (
           <div className="product-option mb-4">
-            <label className="block font-medium mb-1 text-gray-800">
-              Size:
-            </label>
+            <label className="block font-medium mb-1 text-gray-800">Size:</label>
             <div className="flex gap-2 flex-wrap">
               {sizes.map((s) => (
                 <button
@@ -197,9 +214,96 @@ export default function ProductView({ product }: { product: Product }) {
               ))}
             </div>
           </div>
+        )} */}
+        {/* {sizes.length > 0 && (
+          <div className="product-option mb-4">
+            <label className="block font-medium mb-1 text-gray-800">Size:</label>
+            <div className="flex gap-3 flex-wrap">
+              {sizes.map((s) => (
+                <div
+                  key={s || "none"}
+                  onClick={() => setSelectedSize(s)}
+                  aria-selected={selectedSize === s}
+                  className={`px-3 py-1 rounded-xl text-gray-800 cursor-pointer transition-all ${
+                    selectedSize === s
+                      ? "bg-blue-100 text-blue-700 border border-blue-500"
+                      : "bg-white/10 border border-gray-300 hover:bg-white/20"
+                  }`}
+                >
+                  {s}
+                </div>
+              ))}
+            </div>
+          </div>
+        )} */}
+
+
+        {sizes.length > 0 && (
+          <div className="product-option mb-4 min-w-fit">
+            <label className="block font-medium mb-1 text-gray-800">Size:</label>
+            <div className="flex gap-3 flex-nowrap overflow-x-auto">
+              {sizes
+                .sort((a, b) => {
+                  // Define size mapping for standard and extended sizes
+                  const getSizeValue = (size) => {
+                    // Normalize size (remove spaces, convert to uppercase)
+                    const s = size.trim().toUpperCase();
+
+                    // Handle sizes with regex
+                    const match = s.match(/^(X{0,2})(S|M|L)?(\d{0,2})(XL)?$/);
+                    if (!match) return 999; // Fallback for unknown sizes
+
+                    const [, xPrefix, base, number, xlSuffix] = match;
+                    let value = 0;
+
+                    // Base size values
+                    const baseValues = { S: 1, M: 2, L: 3 };
+                    if (base) {
+                      value = baseValues[base];
+                    }
+
+                    // Handle XL explicitly
+                    if (s === "XL") {
+                      value = 4; // XL comes after L, before 2XL
+                    }
+
+                    // Adjust for X prefixes (e.g., XS, XXS)
+                    if (xPrefix && base) {
+                      value = baseValues[base] - xPrefix.length; // XS = 0, XXS = -1
+                    }
+
+                    // Adjust for numbered XL sizes (e.g., 2XL, 3XL)
+                    if (number && xlSuffix) {
+                      value = 4 + parseInt(number); // 2XL = 6, 3XL = 7
+                    }
+
+                    return value;
+                  };
+
+                  const valueA = getSizeValue(a);
+                  const valueB = getSizeValue(b);
+
+                  // Sort by size value, fallback to alphabetical for equal values
+                  return valueA - valueB || a.localeCompare(b);
+                })
+                .map((s) => (
+                  <div
+                    key={s || "none"}
+                    onClick={() => setSelectedSize(s)}
+                    aria-selected={selectedSize === s}
+                    className={`px-3 py-1 rounded-xl text-gray-800 cursor-pointer transition-all whitespace-nowrap ${
+                      selectedSize === s
+                        ? "bg-blue-100 text-blue-700 border border-blue-500"
+                        : "bg-white/10 border border-gray-300 hover:bg-white/20"
+                    }`}
+                  >
+                    {s}
+                  </div>
+                ))}
+            </div>
+          </div>
         )}
 
-        {/* Quantity */}
         <div className="product-option mb-4">
           <label htmlFor="qty" className="block font-medium mb-1 text-gray-800">
             Quantity:
@@ -214,7 +318,6 @@ export default function ProductView({ product }: { product: Product }) {
           />
         </div>
 
-        {/* ✅ Stock Status turns green if available */}
         <div
           className={`stock-status mb-2 font-medium ${
             inStock ? "text-green-600" : "text-red-600"
@@ -223,7 +326,6 @@ export default function ProductView({ product }: { product: Product }) {
           {inStock ? "In Stock" : "Out of Stock"}
         </div>
 
-        {/* Add to Cart */}
         <button
           onClick={async () => {
             if (!selectedVariant) return;
@@ -242,7 +344,6 @@ export default function ProductView({ product }: { product: Product }) {
           Add to Cart
         </button>
 
-        {/* Product Description */}
         {product.description && (
           <div className="product-description mt-6 overflow-auto">
             <p>{product.description}</p>
