@@ -87,6 +87,48 @@ export default function ProductView({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [highlightedIdx, setHighlightedIdx] = useState(0);
 
+  // Favorites state + handler (persist to localStorage; optional backend call if authenticated)
+  const [isFavorited, setIsFavorited] = useState<boolean>(false);
+  useEffect(() => {
+    try {
+      const favs = JSON.parse(localStorage.getItem("favorites") || "[]") as (string | number)[];
+      const pid = product?.id ?? product?.printful_id;
+      setIsFavorited(pid != null && favs.includes(pid));
+    } catch {
+      setIsFavorited(false);
+    }
+  }, [product?.id, product?.printful_id]);
+
+  const toggleFavorite = async () => {
+    const pid = product?.id ?? product?.printful_id;
+    if (pid == null) return;
+    try {
+      // optimistic update
+      const prev = isFavorited;
+      setIsFavorited(!prev);
+
+      const favs = JSON.parse(localStorage.getItem("favorites") || "[]") as any[];
+      const exists = favs.includes(pid);
+      const newFavs = exists ? favs.filter((x) => x !== pid) : [...favs, pid];
+      localStorage.setItem("favorites", JSON.stringify(newFavs));
+
+      // optional backend sync if you have an API and user is authenticated
+      if (isAuthenticated) {
+        await fetch(exists ? `/api/favorites/${pid}` : "/api/favorites", {
+          method: exists ? "DELETE" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: exists ? undefined : JSON.stringify({ productId: pid }),
+        }).catch(() => {
+          // revert on failure
+          setIsFavorited(prev);
+          localStorage.setItem("favorites", JSON.stringify(favs));
+        });
+      }
+    } catch (err) {
+      console.error("toggleFavorite error", err);
+    }
+  };
+
   const variantsByKey = useMemo(() => {
     const map = new Map<string, Variant>();
     for (const v of product.variants) {
@@ -210,19 +252,77 @@ export default function ProductView({ product }: { product: Product }) {
   const shareTitle = product?.name ?? "Check out this product";
 
   return (
-    <section className="product-detail-container flex flex-col md:flex-row gap-8">
+    <section className="product-detail-container flex flex-col md:flex-row gap-8 ">
+      
       {/* LEFT: Images */}
       <div className="product-images flex flex-col gap-4">
-        <div className="main-image">
+        <div className="main-image relative"> {/* made relative so overlay can be positioned */}
+          {/* top-right favorite toggle */}
+          <button
+            type="button"
+            onClick={toggleFavorite}
+            aria-pressed={isFavorited ? "true" : "false"}
+            aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+            className="absolute top-2 right-2 z-10 p-1 rounded-full bg-white/90 hover:bg-white 
+            shadow-none border-0 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            {isFavorited ? (
+              // filled / red heart (favorited)
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-hidden="true"
+                className="w-9 h-9"
+              >
+                <path
+                  d="M12 21L10.55 19.7C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 12 
+                  5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 19.7L12 21Z"
+                  stroke="#FF0000"
+                  strokeWidth={1.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="#FF0000"
+                />
+              </svg>
+            ) : (
+              // outline heart (not favorited)
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                role="img"
+                aria-hidden="true"
+                className="w-9 h-9 text-black"
+              >
+                <path
+                  d="M12 21.35L10.55 20.03C5.4 15.36 2 12.28 2 8.5C2 5.42 4.42 3 7.5 3C9.24 3 10.91 3.81 
+                  12 5.09C13.09 3.81 14.76 3 16.5 3C19.58 3 22 5.42 22 8.5C22 12.28 18.6 15.36 13.45 20.03L12 21.35Z"
+                  stroke="black"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </button>
           {gallery[highlightedIdx]?.url ? (
-            <img
-              src={gallery[highlightedIdx].url}
-              alt={product.name}
-              className="rounded-xl object-cover"
-              width={500}
-              height={500}
-              style={{ aspectRatio: "1 / 1" }}
-            />
+            <>
+              <img
+                src={gallery[highlightedIdx].url}
+                alt={product.name}
+                className="rounded-xl object-cover"
+                width={500}
+                height={500}
+                style={{ aspectRatio: "1 / 1" }}
+              />
+              
+            </>
           ) : (
             <div className="w-full aspect-square bg-gray-100 flex items-center justify-center text-gray-400">
               No image
@@ -286,7 +386,7 @@ export default function ProductView({ product }: { product: Product }) {
         
        
         {sizes.length > 0 && (
-          <div className="product-option mb-4 min-w-fit">
+          <div className="product-option mb-4 ">
             <label className="block font-medium mb-1 text-gray-800">Size:</label>
             <div className="flex gap-3 flex-nowrap overflow-x-auto">
               {sizes
@@ -421,7 +521,7 @@ export default function ProductView({ product }: { product: Product }) {
       </div>
 
         {/* Share Product */}
-        <div className="ins-tile__row ins-tile__row--social">
+        <div className="ins-tile__row ins-tile__row--social ">
           <p>Share this product with your friends:</p>
           <div className="flex flex-row flex-nowrap gap-6 mt-6">
             {/* Facebook */}
