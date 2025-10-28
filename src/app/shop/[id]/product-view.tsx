@@ -29,7 +29,7 @@ type GalleryImage = { key: string; url: string };
 /**
  * Build a stable gallery array (unique keys, string urls).
  * Accepts product.gallery that might be string[] or array of urls, and variant.image_url entries.
- */
+ to commit */
 export function useGallery(product: Product) {
   const initial = useMemo<GalleryImage[]>(() => {
     const seen = new Set<string>();
