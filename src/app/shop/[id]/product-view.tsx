@@ -12,6 +12,8 @@ import { SizeSelector } from "@/components/SizeSelector";
 import { toast } from "react-hot-toast";
 import "@/components/QuantitySelector.css";
 import "@/components/FavoriteSelector.css";
+import { useGallery } from "@/features/Variant/hooks/useGallery";
+
 
 /**
  * Helpers
@@ -24,69 +26,7 @@ function money(v: number | string | undefined, c?: string) {
   }).format(num);
 }
 
-type GalleryImage = { key: string; url: string };
 
-/**
- * Build a stable gallery array (unique keys, string urls).
- * Accepts product.gallery that might be string[] or array of urls, and variant.image_url entries.
- to commit */
-export function useGallery(product: Product) {
-  const initial = useMemo<GalleryImage[]>(() => {
-    const seen = new Set<string>();
-    const out: GalleryImage[] = [];
-
-    const pushUrl = (u?: string | null, hintKey?: string) => {
-      if (!u) return;
-      const url = String(u).trim();
-      if (!url || seen.has(url)) return;
-      seen.add(url);
-      // key uses hint (variant id) if provided to guarantee uniqueness in case same url repeats
-      const key = hintKey ? `${hintKey}::${url}` : `img::${url}`;
-      console.log("[useGallery] pushing image:", key, url); // 👈 Add this line
-      out.push({ key, url });
-    };
-
-    // product.gallery may be string[] of urls (you told me earlier it's strings)
-    if (Array.isArray((product as any).gallery)) {
-      for (const g of (product as any).gallery) {
-        if (typeof g === "string") pushUrl(g);
-        else if (g && typeof g.url === "string") pushUrl(g.url);
-      }
-    }
-
-    // product.image_url
-    if ((product as any).image_url) pushUrl((product as any).image_url);
-
-    // mockups
-    for (const m of product.mockups ?? []) {
-      pushUrl(m?.url);
-    }
-
-    // variants images and any all_images lists
-    // for (const v of product.variants ?? []) {
-    //   pushUrl(v.image_url, `variant-${v.id}`);
-    //   if (Array.isArray((v as any).all_images)) {
-    //     for (const a of (v as any).all_images) pushUrl(a);
-    //   }
-    //   // sometimes printful returns preview urls in files -> try to include thumbnails
-    //   // if (Array.isArray((v as any).files)) {
-    //   //   for (const f of v.files) {
-    //   //     if (f?.preview_url) pushUrl(f.preview_url);
-    //   //     if (f?.thumbnail_url) pushUrl(f.thumbnail_url);
-    //   //   }
-    //   // }
-    // }
-
-    return out;
-  }, [product]);
-
-  const [gallery, setGallery] = useState<GalleryImage[]>(initial);
-
-  // keep in sync if product changes
-  useEffect(() => setGallery(initial), [initial]);
-
-  return { gallery };
-}
 
 /**
  * ProductView (production-ready)
