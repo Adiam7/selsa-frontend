@@ -1,4 +1,4 @@
-// useVariantSelector.ts
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -53,8 +53,6 @@ export const useVariantSelector = (
     return map;
   }, [variants]);
 
-  
-  
   // --- Combine gallery and colors ---
   const gallery_color = useMemo(
     () =>
@@ -66,67 +64,6 @@ export const useVariantSelector = (
     [gallery, colors]
   );
   console.log("🖼️ Gallery with Colors:", gallery_color);
-
-
-  // --- Get all unique image URLs from variants ---
-  const all_image_variants = useMemo(() => {
-    const urls = new Set<string>(); // use a Set to automatically avoid duplicates
-    variants.forEach((v) => {
-      if (v.image_url && !urls.has(v.image_url) && !/printfile-preview/i.test(v.image_url)) {
-        urls.add(v.image_url);
-      }
-    });
-    return Array.from(urls); // convert Set to Array
-  }, [variants]);
-
-  console.log("🖼️ All Unique Variant Images:", all_image_variants);
-
-  // --- Match gallery_color item to all_image_variants with logging ---
-  const matchGalleryItemToVariant = useCallback(
-    (item: typeof gallery_color[number]) => {
-      // Original gallery URL
-      console.log("Gallery URL:", item.url);
-      console.log("Gallery Color:", item.color);
-
-      // Clean URL from gallery (remove _preview)
-      const cleanUrl = item.url.replace("_preview", "");
-      console.log("Clean URL for matching:", cleanUrl);
-
-      // Find variant in all_image_variants that matches URL and color
-      const matched = all_image_variants.find(
-        (v) => {
-          const isMatch = v.variant.image_url === cleanUrl && v.color === item.color;
-          console.log(
-            "Checking variant:",
-            v.variant.image_url,
-            "Color:",
-            v.color,
-            "Match?",
-            isMatch
-          );
-          return isMatch;
-        }
-      );
-
-      if (!matched) {
-        console.log("No matching variant found for this gallery item.");
-        return null;
-      }
-
-      console.log("Matched Variant:", {
-        id: matched.variant.id,
-        color: matched.color,
-        image_url: matched.variant.image_url,
-      });
-
-      return {
-        id: matched.variant.id,
-        color: matched.color,
-        image_url: matched.variant.image_url,
-      };
-    },
-    [all_image_variants]
-  );
 
   // --- Compute available sizes for selected color ---
   const sizes = useMemo(() => {
@@ -176,7 +113,7 @@ export const useVariantSelector = (
       setLocalHighlightedIdx(idx);
       externalSetHighlightedIdx(idx);
     },
-    [externalSetHighlightedIdx]
+    [externalSetHighlightedIdx,setLocalHighlightedIdx]
   );
 
   // --- Handlers ---
@@ -191,30 +128,31 @@ export const useVariantSelector = (
 
   const handleThumbnailClick = useCallback(
     (idx: number) => {
-      const clickedItem = gallery_color[idx];
-      if (!clickedItem) return;
-
-      const clickedVariant = variants.find((v) => v.id === clickedItem.variantId);
-      if (!clickedVariant) return;
-
-      setColor(clickedVariant.color ?? null);
-      setSize(clickedVariant.size ?? null);
       updateHighlight(idx);
+
+      const galleryItem = gallery_color[idx];
+      if (!galleryItem) return;
+
+      // Instead of calling handleColorSelect (circular), just set the state directly
+      setColor(galleryItem.color);
+      setSelectedSize(null); // optionally reset size
     },
-    [gallery_color, variants, setColor, setSize, updateHighlight]
+    [gallery_color, updateHighlight]
   );
 
   const handleColorSelect = useCallback(
     (color: string) => {
       setColor(color);
+      setSelectedSize(null);
 
-      const galleryItem = gallery_color.find((g) => g.color === color);
-      if (!galleryItem) return;
+      // Find gallery index for this color
+      const idx = gallery_color.findIndex((g) => g.color === color);
+      if (idx >= 0) {
+        updateHighlight(idx); // safely update gallery highlight without calling handleThumbnailClick
 
-      const idx = gallery_color.findIndex((g) => g.variantId === galleryItem.variantId);
-      if (idx >= 0) updateHighlight(idx);
+      }
     },
-    [gallery_color, setColor, updateHighlight]
+    [gallery_color, updateHighlight]
   );
 
   useEffect(() => {
@@ -240,3 +178,4 @@ export const useVariantSelector = (
     setHighlightedIdx: updateHighlight,
   };
 };
+
