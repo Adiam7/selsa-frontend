@@ -1,0 +1,11 @@
+export interface Variant {
+  id: string;
+  sku?: string;
+  color?: string | null;
+  size?: string | null;
+  image?: { url: string };
+  price: number;
+  currency: string;
+  is_available: boolean;
+  stock_level?: number; // optional, e.g., 0–100 or actual quantity
+}

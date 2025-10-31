@@ -1,12 +1,9 @@
-// product-view.tsx
-
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "react-hot-toast";
-
 
 import { addToCart } from "@/lib/api/cart";
 import { useCart } from "@/features/cart/hooks/useCart";
@@ -31,7 +28,6 @@ import "@/components/FavoriteSelector.css";
 import "@/features/Variant/hooks/GallerySelector.css";
 
 
-/** Helper */
 function money(v: number | string | undefined, c?: string) {
   const num = typeof v === "string" ? Number(v) || 0 : v ?? 0;
   return new Intl.NumberFormat("en-US", {
@@ -49,7 +45,6 @@ export default function ProductView({ product }: { product: Product }) {
   const [qty, setQty] = useState<number>(1);
   const [isFavorited, setIsFavorited] = useState(false);
 
-  // --- Auth fallback ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -61,17 +56,12 @@ export default function ProductView({ product }: { product: Product }) {
     setIsAuthenticated(Boolean(token));
   }, []);
 
- // --- GALLERY FIRST ---
-  const {
-    galleryState,
-    highlightedIdx,
-    setHighlightedIdx,
-    galleryByColor,
-  } = useGallery(product, {
+  // --- Gallery ---
+  const { galleryState, highlightedIdx, setHighlightedIdx } = useGallery(product, {
     skipFirstVariantImage: true,
   });
 
-  // --- VARIANT SELECTOR SECOND ---
+  // --- Variant selector ---
   const {
     selectedVariant,
     selectedColor,
@@ -82,17 +72,13 @@ export default function ProductView({ product }: { product: Product }) {
     inStock,
     variantImages,
     handleColorSelect,
-    gallery_color,
+    handleThumbnailClick,
   } = useVariantSelector(product.variants, {
     galleryState,
     setHighlightedIdx,
+    mainImageUrl: product.image_url,
   });
 
-
-
-  
-  console.log("🖼️ Gallery state:", galleryState);
-  // --- Add to cart ---
   const handleAddToCart = useCallback(async () => {
     if (!selectedVariant) {
       toast.error("Please select a valid variant.");
@@ -143,8 +129,6 @@ export default function ProductView({ product }: { product: Product }) {
     ? money(selectedVariant.price, selectedVariant.currency)
     : money(product.variants[0]?.price, product.variants[0]?.currency);
 
-    
-  // --- Render ---
   return (
     <section className="product-detail-container flex flex-col md:flex-row gap-8">
       {/* LEFT: Images */}
@@ -175,43 +159,31 @@ export default function ProductView({ product }: { product: Product }) {
           </div>
         </div>
 
-        {/* GAllERY */ }
-        {/* <div className="product-images">
-          <ProductGallery 
-          product={product} 
-          gallery_color={gallery_color}   // pass the color-tagged gallery
-          onColorSelect={handleColorSelect}
-          onHighlightChange={(idx) => setHighlightedIdx(idx)}
-
-          />
-        </div> */}
+        {/* Product Gallery */}
         <ProductGallery
-        product={product}
-        selectedColor={selectedColor}
-        onColorSelect={handleColorSelect}
-        highlightedIdx={highlightedIdx}
-        onHighlightChange={(idx) => setHighlightedIdx(idx)}
-      />
-
-
+          product={product}
+          selectedColor={selectedColor}
+          onColorSelect={handleColorSelect}
+          highlightedIdx={highlightedIdx}
+          onHighlightChange={handleThumbnailClick}
+        />
       </div>
 
       {/* RIGHT: Info */}
       <div className="product_info flex-1 space-y-4">
-        {/* Name */ }
         <h1 className="product-title text-2xl font-bold">{product.name}</h1>
-        {/* Price */ }
+
         <div className="product-price text-xl font-semibold text-gray-800">
           {priceLabel}
         </div>
-        {/* Color */ }
+
         <ColorSelector
           colors={colors}
           selectedColor={selectedColor}
           onSelect={handleColorSelect}
           variantImages={variantImages}
         />
-        {/* Size */ }
+
         <SizeSelector
           sizes={sizes}
           selectedSize={selectedSize}
@@ -220,7 +192,7 @@ export default function ProductView({ product }: { product: Product }) {
             .filter((v) => v.color === selectedColor && !v.is_available)
             .map((v) => v.size ?? "")}
         />
-        {/* Quantity */ }
+
         <QuantitySelector
           qty={qty}
           setQty={setQty}
@@ -228,14 +200,12 @@ export default function ProductView({ product }: { product: Product }) {
           max={selectedVariant?.quantity ?? 99}
         />
 
-        {/* Preview */ }
         <SelectedVariantPreview
           color={selectedColor}
           size={selectedSize}
           image={galleryState[highlightedIdx]?.url}
         />
 
-        {/* In stock */ }
         <div
           className={`stock-status mb-2 font-medium ${
             inStock ? "text-green-600" : "text-red-600"
@@ -243,7 +213,7 @@ export default function ProductView({ product }: { product: Product }) {
         >
           {inStock ? "In Stock" : "Out of Stock"}
         </div>
-        {/* Add to cart */ }
+
         <button
           type="button"
           onClick={handleAddToCart}
@@ -253,16 +223,14 @@ export default function ProductView({ product }: { product: Product }) {
         >
           {loading ? "Adding..." : "Add to Cart"}
         </button>
-        {/* Description */ }
+
         {product.description && (
           <div className="product-description mt-6 overflow-auto">
             <p>{product.description}</p>
           </div>
         )}
-        {/* Social Share */ }
-        <ShareProduct  productName={product.name} />
-    
 
+        <ShareProduct productName={product.name} />
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 // src/app/shop/[id]/page.tsx
 
-import ProductView from "./product-view.tsx";
+import ProductView from "./product-view";
 import { getProduct } from "@/lib/api/api";
 import { Product } from "@/types/printful_product";
 
@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props) {
   const product: Product = await getProduct(id, 900);
 
   const title = product?.name ?? "Product";
-  const img = product?.mainImage ?? product?.mockups?.[0];
+  const img = (product as any).mainImage ?? product?.mockups?.[0];
 
   return {
     title,
